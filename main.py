@@ -1,4 +1,8 @@
 import asyncio as asyncio
+import json
+import time
+
+import httpx
 import requests
 import datetime
 from typing import List
@@ -23,26 +27,39 @@ sessionmaker= FastAPISessionMaker(SQLALCHEMY_DATABASE_URL)
 
 app = FastAPI()
 
-#weather_city = URL + "appid=" + API_KEY + "&q= London"
 
-#response = requests.get(weather_city).json()
-#hi = response['main']['temp'] - 100
-#print(hi)
 
-@app.get("/weather/request/{city}",response_model=schemas.Weather_out)
-def get_weather(city: str,db: Session = Depends(get_db)):
+@app.middleware("http")
+async def add_process_time_header(request,call_next):
+    start_time = time.time()
+    response = await  call_next(request)
+    process_time = time.time() - start_time
+    response.headers["X-Process-Time"] = str(f'{process_time:0.4f} sec')
+    return response
+
+
+async def get_response(city: str):
+ async with httpx.AsyncClient() as client:
+    weather_city = f"{settings.url}appid={settings.api_key}&q={city}"
+    response = await client.get(weather_city)
+    response_json = json.loads(response.text)
+    response_json_out = kelvin_to_celcium(response_json, city)
+    return response_json_out
+
+
+@app.get("/weather/request/{city}")#,response_model=schemas.Weather_out)
+async def get_weather(city: str,db: Session = Depends(get_db)):
     #one_city = db.query(models.city).where(city.name == name).first()
 
 
 
-    weather_city = f"{settings.url}appid={settings.api_key}&q={city}"
 
-    response = requests.get(weather_city).json()
+    response = await asyncio.gather(get_response(city))
+    response_out = dict(*response)
 
-    response_out = kelvin_to_celcium(response, city)
-    db_response= models.City(**response_out)
-
+    db_response = models.City(**dict(*response))
     db.add(db_response)
+    print(db_response)
     db.commit()
     db.refresh(db_response)
 
@@ -78,9 +95,6 @@ def del_weather():
         response_out.delete(synchronize_session=False)
         db.commit()
     return
-
-
-
 
 
 
