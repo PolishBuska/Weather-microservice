@@ -1,13 +1,13 @@
 import asyncio as asyncio
 import json
 import time
-
+from sqlalchemy import select
 import httpx
 import requests
 import datetime
 from typing import List
 import models
-from utils import kelvin_to_celcium,del_weather_2
+from utils import kelvin_to_celcium
 from fastapi import FastAPI,Depends
 import schemas
 from fastapi import HTTPException,status
@@ -29,6 +29,11 @@ app = FastAPI()
 
 
 
+
+
+
+
+
 @app.middleware("http")
 async def add_process_time_header(request,call_next):
     start_time = time.time()
@@ -47,7 +52,7 @@ async def get_response(city: str):
     return response_json_out
 
 
-@app.get("/weather/request/{city}")#,response_model=schemas.Weather_out)
+@app.get("/weather/request/{city}",response_model=schemas.Weather_out)
 async def get_weather(city: str,db: Session = Depends(get_db)):
     #one_city = db.query(models.city).where(city.name == name).first()
 
@@ -55,21 +60,21 @@ async def get_weather(city: str,db: Session = Depends(get_db)):
 
 
     response = await asyncio.gather(get_response(city))
-    response_out = dict(*response)
+    response_1 = dict(*response)
 
-    db_response = models.City(**dict(*response))
+    db_response = (models.City(**dict(*response)))
     db.add(db_response)
     print(db_response)
     db.commit()
     db.refresh(db_response)
 
-    return response_out
+    return response_1
 
 @app.get("/weather/{city}",
          response_model=List[schemas.Weather_out_db],
          description="Getting a city from the db"
          )
-def get_weather(city: str,db: Session = Depends(get_db)):
+async def get_weather(city: str,db: Session = Depends(get_db)):
     #one_city = db.query(models.city).where(city.name == name).first()
 
 
@@ -78,7 +83,7 @@ def get_weather(city: str,db: Session = Depends(get_db)):
 
     #response = requests.get(weather_city).json()
 
-    response_out = db.query(models.City).filter(models.City.city == city).all()
+    response_out = db.query(models.City)(models.City.city == city).all()
     if not response_out:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"{city} weather doesn't exist or isn't in the db")
