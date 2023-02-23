@@ -12,6 +12,7 @@ router = APIRouter(
     prefix="/weather",
     tags=['getting_weather']
 )
+#Routs' section for getting data
 @router.get("/{city}",
          response_model=List[schemas.Weather_out_db],
          description="Getting a city from the db"
@@ -28,7 +29,7 @@ def get_weather(city: str, db: Session = Depends(get_db)):
 
 @router.get("/request/{city}",response_model=schemas.Weather_out)
 async def get_weather(city: str, db: Session = Depends(get_db)):
-    response = await asyncio.gather(get_response(city))
+    response = await asyncio.gather(get_response(city)) # getting the list of data, file's at utils
     response_1 = dict(*response)
     db_response = (models.City(**dict(*response)))
     db.add(db_response)

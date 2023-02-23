@@ -12,4 +12,5 @@ class City(Base):
     created_at = Column(TIMESTAMP(timezone=True),
                         nullable=False,
                         server_default=text('now()'))
+    wind = Column(String)
 

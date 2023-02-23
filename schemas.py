@@ -5,6 +5,7 @@ class Weather_out (BaseModel):
     city: str
     weather: str
     temperature: float
+    wind: str
     class Config():
         orm_mode = True
 
