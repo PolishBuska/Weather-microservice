@@ -26,7 +26,7 @@ def get_weather(city: str, db: Session = Depends(get_db)):
 
 
 
-
+#This one is for receiving data from an outer api
 @router.get("/request/{city}",response_model=schemas.Weather_out)
 async def get_weather(city: str, db: Session = Depends(get_db)):
     response = await asyncio.gather(get_response(city)) # getting the list of data, file's at utils
